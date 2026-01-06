@@ -73,18 +73,14 @@ function! vim_dadbod_completion#omni(findstart, base)
   endif
 
   if empty(table_scope) && empty(schema_scope)
-    let tables = copy(cache_db.tables)
-    if should_filter
-      call filter(tables, 'v:val.abbr =~? s:filter_rgx.a:base')
-    endif
-    let tables = tables[0:s:limit('tables')]
+	let tables = should_filter 
+      \ ? matchfuzzy(cache_db.tables, a:base, {'key': 'abbr'})[0:s:limit('tables')]
+      \ : copy(cache_db.tables)[0:s:limit('tables')]
 
-    let schemas = keys(cache_db.schemas)
-    if should_filter
-      call filter(schemas, 'v:val =~? s:filter_rgx.a:base')
-    endif
-    let schemas = schemas[0:s:limit('schemas')]
-    call map(schemas, function('s:map_item', ['string', 'schema', 'S']))
+	let schemas = should_filter
+      \ ? matchfuzzy(keys(cache_db.schemas), a:base)[0:s:limit('schemas')]
+      \ : keys(cache_db.schemas)[0:s:limit('schemas')]
+	call map(schemas, function('s:map_item', ['string', 'schema', 'S']))
 
     for [tbl, alias] in items(s:buffers[bufnr].aliases)
       for a in alias
@@ -105,12 +101,9 @@ function! vim_dadbod_completion#omni(findstart, base)
       let reserved_words = reserved_words[0:s:limit('reserved_words')]
     endif
 
-    let functions = copy(cache_db.functions)
-    if !empty(a:base) && !is_trigger_char
-      call filter(functions, 'v:val.abbr =~? ''^''.a:base')
-    endif
-
-    let functions = functions[0:s:limit('functions')]
+	let functions = (!empty(a:base) && !is_trigger_char)
+      \ ? matchfuzzy(cache_db.functions, a:base, {'key': 'abbr'})[0:s:limit('functions')]
+      \ : copy(cache_db.functions)[0:s:limit('functions')]
   endif
 
   if !empty(schema_scope)
@@ -129,11 +122,9 @@ function! vim_dadbod_completion#omni(findstart, base)
     let columns = copy(cache_db.columns)
   endif
 
-  if should_filter
-    call filter(columns, 'v:val.abbr =~? s:filter_rgx.a:base')
-  endif
-
-  let columns = columns[0:s:limit('columns')]
+  let columns = should_filter
+      \ ? matchfuzzy(columns, a:base, {'key': 'abbr'})[0:s:limit('columns')]
+      \ : columns[0:s:limit('columns')]
 
   return s:quote_results(bind_params + reserved_words + schemas + tables + aliases + columns + functions)
 endfunction
